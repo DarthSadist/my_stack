@@ -311,6 +311,7 @@ n8n.${DOMAIN_NAME} {
 flowise.${DOMAIN_NAME} {
     reverse_proxy flowise:3001
 }
+EOL
 
 # Add Adminer to Caddyfile if enabled
 if [[ "$INSTALL_ADMINER" == "true" ]]; then
@@ -321,7 +322,6 @@ adminer.${DOMAIN_NAME} {
 }
 ADMINER_EOL
 fi
-EOL
 if [ $? -ne 0 ]; then
   echo "ERROR: Failed to create Caddyfile"
   exit 1
