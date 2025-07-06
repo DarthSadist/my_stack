@@ -299,6 +299,7 @@ SUBDOMAIN_QDRANT=${SUBDOMAIN_QDRANT}
 DOMAIN_NAME=${DOMAIN_NAME}
 QDRANT_UPSTREAM=${QDRANT_UPSTREAM}
 QDRANT_API_KEY=${QDRANT_API_KEY}
+QDRANT_DATA_DIR=qdrant_data
 EOL
 
   # Add Qdrant settings to main .env for integration with n8n and Flowise
