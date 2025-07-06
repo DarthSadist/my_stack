@@ -249,6 +249,7 @@ FLOWISE_PASSWORD=$FLOWISE_PASSWORD
 
 # Domain settings
 DOMAIN_NAME=$DOMAIN_NAME
+EOL
 
 # Adminer settings (if enabled)
 if [[ "$INSTALL_ADMINER" == "true" ]]; then
@@ -256,7 +257,7 @@ if [[ "$INSTALL_ADMINER" == "true" ]]; then
   ADMINER_UPSTREAM="adminer:8080"
   
   # Add Adminer settings to passwords.txt
-  cat >> "$PASSWORD_FILE" << EOL
+  cat >> "$PASSWORD_FILE" << ADMINER_INFO_EOF
 
 # Adminer Settings
 Adminer URL: https://${SUBDOMAIN_ADMINER}.${DOMAIN_NAME}
@@ -264,16 +265,16 @@ Database Host: postgres
 Database Port: 5432
 
 Powerful web interface for managing your PostgreSQL database.
-EOL
+ADMINER_INFO_EOF
   
   # Create Adminer .env file
   mkdir -p /opt/adminer
-  cat > /opt/adminer/.env << EOL
+  cat > /opt/adminer/.env << ADMINER_ENV_EOF
 # Adminer settings
 SUBDOMAIN_ADMINER=${SUBDOMAIN_ADMINER}
 DOMAIN_NAME=${DOMAIN_NAME}
 ADMINER_UPSTREAM=${ADMINER_UPSTREAM}
-EOL
+ADMINER_ENV_EOF
 
 # Qdrant settings (if enabled)
 if [[ "$INSTALL_QDRANT" == "true" ]]; then
@@ -282,25 +283,25 @@ if [[ "$INSTALL_QDRANT" == "true" ]]; then
   QDRANT_API_KEY=$(generate_safe_password 32)
   
   # Add Qdrant settings to passwords.txt
-  cat >> "$PASSWORD_FILE" << EOL
+  cat >> "$PASSWORD_FILE" << QDRANT_INFO_EOF
 
 # Qdrant Settings
 Qdrant URL: https://${SUBDOMAIN_QDRANT}.${DOMAIN_NAME}
 Qdrant API Key: ${QDRANT_API_KEY}
 
 Vector database for similarity search and AI applications.
-EOL
+QDRANT_INFO_EOF
   
   # Create Qdrant .env file
   mkdir -p /opt/qdrant
-  cat > /opt/qdrant/.env << EOL
+  cat > /opt/qdrant/.env << QDRANT_ENV_EOF
 # Qdrant settings
 SUBDOMAIN_QDRANT=${SUBDOMAIN_QDRANT}
 DOMAIN_NAME=${DOMAIN_NAME}
 QDRANT_UPSTREAM=${QDRANT_UPSTREAM}
 QDRANT_API_KEY=${QDRANT_API_KEY}
 QDRANT_DATA_DIR=qdrant_data
-EOL
+QDRANT_ENV_EOF
 
   # Add Qdrant settings to main .env for integration with n8n and Flowise
   cat >> .env << QDRANT_EOF
