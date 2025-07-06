@@ -1,0 +1,25 @@
+${SUBDOMAIN_QDRANT}.${DOMAIN_NAME} {
+    reverse_proxy ${QDRANT_UPSTREAM} {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Port {server_port}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    log {
+        output file /var/log/caddy/${SUBDOMAIN_QDRANT}.${DOMAIN_NAME}-access.log
+    }
+
+    # Security headers
+    header {
+        # Disable FLoC tracking
+        Permissions-Policy interest-cohort=()
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Disable clients from sniffing the media type
+        X-Content-Type-Options nosniff
+        # Keep referrer data off of HTTP connections
+        Referrer-Policy no-referrer-when-downgrade
+    }
+}
