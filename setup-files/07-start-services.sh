@@ -7,6 +7,16 @@ echo "Creating Docker network..."
 sudo docker network create app-network || true
 echo "Docker network created or already exists"
 
+# Create necessary Docker volumes
+echo "Creating Docker volumes..."
+sudo docker volume create postgres_data || true
+sudo docker volume create redis_data || true
+sudo docker volume create prometheus_data || true
+sudo docker volume create grafana_data || true
+sudo docker volume create caddy_monitoring_data || true
+sudo docker volume create caddy_monitoring_config || true
+echo "Docker volumes created or already exist"
+
 # Check for required files
 if [ ! -f "n8n-docker-compose.yaml" ]; then
   echo "ERROR: File n8n-docker-compose.yaml not found"
