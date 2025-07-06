@@ -21,3 +21,7 @@ services:
 networks:
   app-network:
     external: true
+
+volumes:
+  qdrant_data:
+    external: true
