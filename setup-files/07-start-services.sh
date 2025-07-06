@@ -2,6 +2,11 @@
 
 echo "Starting services..."
 
+# Create Docker network for all services
+echo "Creating Docker network..."
+sudo docker network create app-network || true
+echo "Docker network created or already exists"
+
 # Check for required files
 if [ ! -f "n8n-docker-compose.yaml" ]; then
   echo "ERROR: File n8n-docker-compose.yaml not found"
