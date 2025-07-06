@@ -1,0 +1,24 @@
+{$SUBDOMAIN_ADMINER}.{$DOMAIN_NAME} {
+    reverse_proxy adminer:8080
+    
+    header {
+        # Безопасность
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "no-referrer-when-downgrade"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; media-src 'self'; form-action 'self'; frame-ancestors 'self';"
+        X-XSS-Protection "1; mode=block"
+        
+        # Включаем логи для всех заголовков
+        +*
+    }
+    
+    log {
+        output file /var/log/caddy/adminer-access.log {
+            roll_size 10MB
+            roll_keep 10
+        }
+        format json
+    }
+}

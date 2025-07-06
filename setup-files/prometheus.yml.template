@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  
+  - job_name: 'caddy'
+    static_configs:
+      - targets: ['caddy:2019']
+  
+  - job_name: 'n8n'
+    static_configs:
+      - targets: ['n8n:5678']
+
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['172.17.0.1:9323']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']

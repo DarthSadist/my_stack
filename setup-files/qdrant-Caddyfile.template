@@ -1,0 +1,23 @@
+{$SUBDOMAIN_QDRANT}.{$DOMAIN_NAME} {
+    reverse_proxy qdrant:6333
+    
+    header {
+        # Безопасность
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "no-referrer-when-downgrade"
+        X-XSS-Protection "1; mode=block"
+        
+        # Включаем логи для всех заголовков
+        +*
+    }
+    
+    log {
+        output file /var/log/caddy/qdrant-access.log {
+            roll_size 10MB
+            roll_keep 10
+        }
+        format json
+    }
+}

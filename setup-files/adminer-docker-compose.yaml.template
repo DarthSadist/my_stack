@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: unless-stopped
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DESIGN=pepa-linha
+      - ADMINER_PLUGINS=tables-filter tinymce
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+    labels:
+      caddy: ${SUBDOMAIN_ADMINER}.${DOMAIN_NAME}
+      caddy.handle: '{path:/*}'
+      caddy.handle.0_reverse_proxy: '{$ADMINER_UPSTREAM}'
+
+volumes:
+  postgres_data:
+    external: true
+  redis_data:
+    external: true
+
+networks:
+  app-network:
+    external: true

@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  flowise:
+    image: flowiseai/flowise
+    restart: unless-stopped
+    container_name: flowise
+    environment:
+      - PORT=3001
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
+      # PostgreSQL connection (if enabled)
+      - DATABASE_TYPE=${FLOWISE_DATABASE_TYPE:-sqlite}
+      - DATABASE_HOST=${FLOWISE_DATABASE_HOST:-postgres}
+      - DATABASE_PORT=${FLOWISE_DATABASE_PORT:-5432}
+      - DATABASE_NAME=${FLOWISE_DATABASE_NAME:-flowise}
+      - DATABASE_USER=${FLOWISE_DATABASE_USER:-flowise}
+      - DATABASE_PASSWORD=${FLOWISE_DATABASE_PASSWORD}
+      # Redis connection (if enabled)
+      - REDIS_HOST=${FLOWISE_REDIS_HOST:-redis}
+      - REDIS_PORT=${FLOWISE_REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${FLOWISE_REDIS_PASSWORD}
+      - REDIS_ENABLED=${FLOWISE_REDIS_ENABLED:-false}
+    volumes:
+      - /opt/flowise:/root/.flowise
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true 

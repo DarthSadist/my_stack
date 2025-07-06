@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    environment:
+      - QDRANT_ALLOW_RECOVERY=true
+      - QDRANT_TELEMETRY_DISABLED=true
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - app-network
+    labels:
+      caddy: ${SUBDOMAIN_QDRANT}.${DOMAIN_NAME}
+      caddy.handle: '{path:/*}'
+      caddy.handle.0_reverse_proxy: '{$QDRANT_UPSTREAM}'
+
+volumes:
+  qdrant_data:
+    external: true
+
+networks:
+  app-network:
+    external: true
