@@ -311,6 +311,7 @@ QDRANT_URL=http://qdrant:6333
 QDRANT_API_KEY=${QDRANT_API_KEY}
 QDRANT_EOF
 fi
+fi
 
 # PostgreSQL settings (if enabled)
 if [[ "$INSTALL_POSTGRES" == "true" ]]; then
