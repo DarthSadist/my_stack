@@ -27,6 +27,15 @@ INSTALL_REDIS=${INSTALL_REDIS:-false}
 INSTALL_ADMINER=${INSTALL_ADMINER:-false}
 INSTALL_QDRANT=${INSTALL_QDRANT:-false}
 
+# Определение пути к файлу с паролями
+PASSWORD_FILE="./setup-files/passwords.txt"
+
+# Проверка существования директории для файла с паролями
+mkdir -p "$(dirname "$PASSWORD_FILE")"
+
+# Создание или очистка файла с паролями
+echo "# Сгенерированные пароли и ключи доступа" > "$PASSWORD_FILE"
+
 echo "Generating secret keys and passwords..."
 
 # Function to generate random strings
@@ -344,7 +353,6 @@ FLOWISE_REDIS_PORT=6379
 FLOWISE_REDIS_PASSWORD=$REDIS_PASSWORD
 REDIS_EOF
 fi
-EOL
 
 if [ $? -ne 0 ]; then
   echo "ERROR: Failed to create .env file"
