@@ -13,6 +13,7 @@ This repository contains scripts for automatic configuration of:
 - **Redis** (optional) - caching and queue management for better performance
 - **Adminer** (optional) - web-based database management tool
 - **Qdrant** (optional) - vector database for similarity search and AI applications
+- **Pentaract** (optional) - Telegram-based file cloud storage
 - **Prometheus & Grafana** (optional) - a monitoring system for metrics collection and visualization
 
 The system is configured to work with your domain name and automatically obtains Let's Encrypt SSL certificates.
@@ -49,6 +50,7 @@ The system is configured to work with your domain name and automatically obtains
    - Choose whether to install Redis cache
    - Choose whether to install Adminer (for database management)
    - Choose whether to install Qdrant vector database
+   - Choose whether to install Pentaract (Telegram-based file cloud storage)
 
 ## What the installation script does
 
@@ -63,6 +65,7 @@ The system is configured to work with your domain name and automatically obtains
 9. **Database setup** (if enabled) - configures PostgreSQL and Redis
 10. **Adminer setup** (if enabled) - configures database management interface
 11. **Qdrant setup** (if enabled) - configures vector database
+12. **Pentaract setup** (if enabled) - configures Telegram-based file cloud storage
 
 ## Accessing services
 
@@ -72,6 +75,7 @@ After installation completes, you will be able to access services at the followi
 - **Flowise**: https://flowise.yourdomain.com
 - **Adminer** (if installed): https://adminer.yourdomain.com
 - **Qdrant** (if installed): https://qdrant.yourdomain.com
+- **Pentaract** (if installed): https://pentaract.yourdomain.com
 
 If you chose to install the monitoring system:
 
@@ -99,6 +103,7 @@ Login credentials for all services will be displayed at the end of the installat
 - **database-docker-compose.yaml.template** - docker-compose template for PostgreSQL and Redis (if database is enabled)
 - **adminer-docker-compose.yaml.template** - docker-compose template for Adminer (if database management is enabled)
 - **qdrant-docker-compose.yaml.template** - docker-compose template for Qdrant vector database (if enabled)
+- **pentaract-docker-compose.yaml.template** - docker-compose template for Pentaract (if enabled)
 
 ## Managing services
 
@@ -115,6 +120,8 @@ docker compose -f database-docker-compose.yaml restart
 docker compose -f adminer-docker-compose.yaml restart
 # If Qdrant is installed
 docker compose -f qdrant-docker-compose.yaml restart
+# If Pentaract is installed
+docker compose -f pentaract-docker-compose.yaml restart
 ```
 
 ### Stopping services
@@ -130,6 +137,8 @@ docker compose -f database-docker-compose.yaml down
 docker compose -f adminer-docker-compose.yaml down
 # If Qdrant is installed
 docker compose -f qdrant-docker-compose.yaml down
+# If Pentaract is installed
+docker compose -f pentaract-docker-compose.yaml down
 ```
 
 ### Viewing logs
@@ -145,6 +154,8 @@ docker compose -f database-docker-compose.yaml logs
 docker compose -f adminer-docker-compose.yaml logs
 # If Qdrant is installed
 docker compose -f qdrant-docker-compose.yaml logs
+# If Pentaract is installed
+docker compose -f pentaract-docker-compose.yaml logs
 ```
 
 ## Security
@@ -296,8 +307,8 @@ If you chose to install PostgreSQL during setup, it will be configured to provid
 
 #### PostgreSQL Details
 
-- **Version**: PostgreSQL 15 (Alpine-based image)
-- **Databases**: Separate databases for n8n and Flowise
+- **Version**: PostgreSQL 17 (Alpine-based image)
+- **Databases**: Separate databases for n8n, Flowise (and Pentaract if enabled)
 - **Users**: Dedicated users for each service with limited permissions
 - **Data Storage**: Persistent Docker volume (`postgres_data`)
 - **Automated Initialization**: The system automatically creates databases and users during first startup
@@ -318,6 +329,9 @@ docker exec -it postgres psql -U postgres
 
 # Connect to flowise database
 \c flowise
+
+# Connect to pentaract database (if enabled)
+\c pentaract
 
 # List tables in current database
 \dt
