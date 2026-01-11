@@ -168,6 +168,32 @@ EOL
   echo "Password for Redis: $REDIS_PASSWORD"
 fi
 
+# Create combined database .env for docker-compose (PostgreSQL/Redis)
+if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
+  sudo mkdir -p /opt/database
+  cat > database.env << EOL
+# Combined settings for database stack (PostgreSQL/Redis)
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+POSTGRES_USER=postgres
+POSTGRES_MULTIPLE_DATABASES=n8n,flowise
+POSTGRES_N8N_PASSWORD=$POSTGRES_N8N_PASSWORD
+POSTGRES_FLOWISE_PASSWORD=$POSTGRES_FLOWISE_PASSWORD
+
+REDIS_PASSWORD=$REDIS_PASSWORD
+EOL
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to create database.env file"
+    exit 1
+  fi
+
+  sudo cp database.env /opt/database/.env
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to copy database.env to /opt/database/.env"
+    exit 1
+  fi
+fi
+
 # Generate monitoring passwords if monitoring is enabled
 if [[ "$INSTALL_MONITORING" == "true" ]]; then
   # Generate Grafana admin password
@@ -367,7 +393,7 @@ echo "Password for n8n: $N8N_PASSWORD"
 echo "Password for Flowise: $FLOWISE_PASSWORD"
 
 # Save passwords for future use - using quotes to properly handle special characters
-echo "N8N_PASSWORD=\"$N8N_PASSWORD\"" > ./setup-files/passwords.txt
+echo "N8N_PASSWORD=\"$N8N_PASSWORD\"" >> ./setup-files/passwords.txt
 echo "FLOWISE_PASSWORD=\"$FLOWISE_PASSWORD\"" >> ./setup-files/passwords.txt
 
 # Add monitoring passwords if monitoring is enabled

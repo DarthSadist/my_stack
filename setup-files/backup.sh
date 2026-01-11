@@ -16,6 +16,9 @@ DATE=$(date +%Y-%m-%d)
 BACKUP_FILE="n8n-flowise-backup-$DATE.tar.gz"
 RETENTION_DAYS=30
 
+# List of Docker volumes to backup
+VOLUMES="n8n_data postgres_data redis_data grafana_data prometheus_data qdrant_data caddy_data caddy_config"
+
 # Функция для вывода сообщений
 log_message() {
   local type=$1
@@ -76,6 +79,42 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Backup Docker volumes
+log_message "info" "Резервное копирование Docker volumes..."
+VOLUME_BACKUP_FILE="volumes-backup-$DATE.tar.gz"
+VOLUME_BACKUP_PATH="$BACKUP_DIR/$VOLUME_BACKUP_FILE"
+
+# Create temporary directory for volume backups
+TEMP_DIR=$(mktemp -d)
+if [ $? -ne 0 ]; then
+  log_message "error" "Не удалось создать временную директорию"
+  exit 1
+fi
+
+# Backup each volume if it exists
+for vol in $VOLUMES; do
+  if docker volume inspect "$vol" &>/dev/null; then
+    log_message "info" "Копирование volume $vol..."
+    docker run --rm -v "$vol":/data -v "$TEMP_DIR":/backup alpine tar -czf "/backup/$vol.tar.gz" -C /data .
+    if [ $? -ne 0 ]; then
+      log_message "warning" "Не удалось создать бэкап volume $vol"
+    fi
+  else
+    log_message "warning" "Volume $vol не существует, пропускается"
+  fi
+done
+
+# Create final volume backup archive
+tar -czf "$VOLUME_BACKUP_PATH" -C "$TEMP_DIR" .
+if [ $? -ne 0 ]; then
+  log_message "error" "Ошибка при создании архива volumes"
+  rm -rf "$TEMP_DIR"
+  exit 1
+fi
+
+# Cleanup temporary directory
+rm -rf "$TEMP_DIR"
+
 # Перезапуск контейнеров
 log_message "info" "Перезапуск контейнеров..."
 docker compose -f /opt/n8n/n8n-docker-compose.yaml start
@@ -83,15 +122,19 @@ docker compose -f /opt/flowise/flowise-docker-compose.yaml start
 
 # Проверка размера созданного бэкапа
 BACKUP_SIZE=$(du -h $BACKUP_DIR/$BACKUP_FILE | cut -f1)
+VOLUME_BACKUP_SIZE=$(du -h "$VOLUME_BACKUP_PATH" 2>/dev/null | cut -f1 || echo "N/A")
 
 # Удаление старых резервных копий (старше указанного количества дней)
 log_message "info" "Удаление старых резервных копий (старше $RETENTION_DAYS дней)..."
 find $BACKUP_DIR -name "n8n-flowise-backup-*.tar.gz" -type f -mtime +$RETENTION_DAYS -delete
+find $BACKUP_DIR -name "volumes-backup-*.tar.gz" -type f -mtime +$RETENTION_DAYS -delete
 DELETED_COUNT=$?
 
 log_message "info" "Резервное копирование завершено успешно!"
 log_message "info" "Файл: $BACKUP_DIR/$BACKUP_FILE"
 log_message "info" "Размер: $BACKUP_SIZE"
+log_message "info" "Volumes backup: $VOLUME_BACKUP_PATH"
+log_message "info" "Volumes backup size: $VOLUME_BACKUP_SIZE"
 log_message "info" "Удалено устаревших резервных копий: $DELETED_COUNT"
 
 exit 0

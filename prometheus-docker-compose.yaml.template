@@ -2,7 +2,7 @@ version: '3'
 
 services:
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.55.0
     container_name: prometheus
     restart: unless-stopped
     volumes:
@@ -18,8 +18,35 @@ services:
     networks:
       - app-network
 
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - app-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - app-network
+
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.1.5
     container_name: grafana
     restart: unless-stopped
     volumes:
@@ -36,7 +63,7 @@ services:
       - app-network
 
   caddy:
-    image: caddy:2
+    image: caddy:2.8.4
     container_name: monitoring-caddy
     restart: unless-stopped
     ports:

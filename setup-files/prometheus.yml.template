@@ -15,10 +15,10 @@ scrape_configs:
     static_configs:
       - targets: ['n8n:5678']
 
-  - job_name: 'docker'
-    static_configs:
-      - targets: ['172.17.0.1:9323']
-
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']

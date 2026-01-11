@@ -51,33 +51,53 @@ main() {
   echo "For installation, you need to specify a domain name and email address."
   
   # Request domain name
-  read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
-  while [[ -z "$DOMAIN_NAME" ]]; do
-    echo "Domain name cannot be empty"
+  if [ -z "${DOMAIN_NAME:-}" ]; then
     read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
-  done
+    while [[ -z "$DOMAIN_NAME" ]]; do
+      echo "Domain name cannot be empty"
+      read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
+    done
+  else
+    echo "Using domain name from environment: $DOMAIN_NAME"
+  fi
   
   # Check DNS records for the domain
   check_dns "$DOMAIN_NAME"
   
   # Request email address
-  read -p "Enter your email (will be used for n8n login): " USER_EMAIL
-  while [[ ! "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
-    echo "Enter a valid email address"
+  if [ -z "${USER_EMAIL:-}" ]; then
     read -p "Enter your email (will be used for n8n login): " USER_EMAIL
-  done
+    while [[ ! "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
+      echo "Enter a valid email address"
+      read -p "Enter your email (will be used for n8n login): " USER_EMAIL
+    done
+  else
+    echo "Using email from environment: $USER_EMAIL"
+    if [[ ! "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+      echo "ERROR: Invalid email format in USER_EMAIL environment variable"
+      exit 1
+    fi
+  fi
   
   # Request timezone
   DEFAULT_TIMEZONE=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
-  read -p "Enter your timezone (default: $DEFAULT_TIMEZONE): " GENERIC_TIMEZONE
-  GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-$DEFAULT_TIMEZONE}
+  if [ -z "${GENERIC_TIMEZONE:-}" ]; then
+    read -p "Enter your timezone (default: $DEFAULT_TIMEZONE): " GENERIC_TIMEZONE
+    GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-$DEFAULT_TIMEZONE}
+  else
+    echo "Using timezone from environment: $GENERIC_TIMEZONE"
+  fi
   
   # Ask if user wants to install monitoring system
   echo ""
-  echo "Do you want to install Prometheus and Grafana monitoring system?"
-  echo "This will provide metrics, dashboards, and monitoring for all services."
-  read -p "Install monitoring system? (y/n, default: n): " INSTALL_MONITORING
-  INSTALL_MONITORING=${INSTALL_MONITORING:-n}
+  if [ -z "${INSTALL_MONITORING:-}" ]; then
+    echo "Do you want to install Prometheus and Grafana monitoring system?"
+    echo "This will provide metrics, dashboards, and monitoring for all services."
+    read -p "Install monitoring system? (y/n, default: n): " INSTALL_MONITORING
+    INSTALL_MONITORING=${INSTALL_MONITORING:-n}
+  else
+    echo "Using monitoring flag from environment: $INSTALL_MONITORING"
+  fi
   if [[ "$INSTALL_MONITORING" =~ ^[Yy]$ ]]; then
     INSTALL_MONITORING=true
     echo "✅ Monitoring system will be installed"
@@ -90,8 +110,12 @@ main() {
   echo ""
   echo "Do you want to install PostgreSQL database?"
   echo "This will provide persistent storage for n8n and Flowise."
-  read -p "Install PostgreSQL? (y/n, default: n): " INSTALL_POSTGRES
-  INSTALL_POSTGRES=${INSTALL_POSTGRES:-n}
+  if [ -z "${INSTALL_POSTGRES:-}" ]; then
+    read -p "Install PostgreSQL? (y/n, default: n): " INSTALL_POSTGRES
+    INSTALL_POSTGRES=${INSTALL_POSTGRES:-n}
+  else
+    echo "Using PostgreSQL flag from environment: $INSTALL_POSTGRES"
+  fi
   if [[ "$INSTALL_POSTGRES" =~ ^[Yy]$ ]]; then
     INSTALL_POSTGRES=true
     echo "✅ PostgreSQL will be installed"
@@ -104,8 +128,12 @@ main() {
   echo ""
   echo "Do you want to install Redis cache?"
   echo "This will improve performance of n8n and Flowise."
-  read -p "Install Redis? (y/n, default: n): " INSTALL_REDIS
-  INSTALL_REDIS=${INSTALL_REDIS:-n}
+  if [ -z "${INSTALL_REDIS:-}" ]; then
+    read -p "Install Redis? (y/n, default: n): " INSTALL_REDIS
+    INSTALL_REDIS=${INSTALL_REDIS:-n}
+  else
+    echo "Using Redis flag from environment: $INSTALL_REDIS"
+  fi
   if [[ "$INSTALL_REDIS" =~ ^[Yy]$ ]]; then
     INSTALL_REDIS=true
     echo "✅ Redis will be installed"
@@ -118,8 +146,12 @@ main() {
   echo ""
   echo "Do you want to install Adminer database management tool?"
   echo "This will provide web interface for PostgreSQL database management."
-  read -p "Install Adminer? (y/n, default: n): " INSTALL_ADMINER
-  INSTALL_ADMINER=${INSTALL_ADMINER:-n}
+  if [ -z "${INSTALL_ADMINER:-}" ]; then
+    read -p "Install Adminer? (y/n, default: n): " INSTALL_ADMINER
+    INSTALL_ADMINER=${INSTALL_ADMINER:-n}
+  else
+    echo "Using Adminer flag from environment: $INSTALL_ADMINER"
+  fi
   if [[ "$INSTALL_ADMINER" =~ ^[Yy]$ ]]; then
     INSTALL_ADMINER=true
     if [[ "$INSTALL_POSTGRES" != "true" ]]; then
@@ -136,8 +168,12 @@ main() {
   echo ""
   echo "Do you want to install Qdrant vector database?"
   echo "This will provide vector storage and similarity search capabilities for n8n and Flowise."
-  read -p "Install Qdrant? (y/n, default: n): " INSTALL_QDRANT
-  INSTALL_QDRANT=${INSTALL_QDRANT:-n}
+  if [ -z "${INSTALL_QDRANT:-}" ]; then
+    read -p "Install Qdrant? (y/n, default: n): " INSTALL_QDRANT
+    INSTALL_QDRANT=${INSTALL_QDRANT:-n}
+  else
+    echo "Using Qdrant flag from environment: $INSTALL_QDRANT"
+  fi
   if [[ "$INSTALL_QDRANT" =~ ^[Yy]$ ]]; then
     INSTALL_QDRANT=true
     echo "✅ Qdrant will be installed"

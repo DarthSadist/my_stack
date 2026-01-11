@@ -18,6 +18,20 @@ if command -v ufw &> /dev/null; then
     echo "ERROR: Failed to open port 443"
     exit 1
   fi
+
+  if [ -d "/opt/monitoring" ]; then
+    sudo ufw allow 9091
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Failed to open port 9091"
+      exit 1
+    fi
+
+    sudo ufw allow 9443
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Failed to open port 9443"
+      exit 1
+    fi
+  fi
   
   # Check if ufw is active
   sudo ufw status | grep -q "Status: active"
@@ -50,6 +64,20 @@ else
   if [ $? -ne 0 ]; then
     echo "ERROR: Failed to open port 443"
     exit 1
+  fi
+
+  if [ -d "/opt/monitoring" ]; then
+    sudo ufw allow 9091
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Failed to open port 9091"
+      exit 1
+    fi
+
+    sudo ufw allow 9443
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Failed to open port 9443"
+      exit 1
+    fi
   fi
   
   # Activate firewall

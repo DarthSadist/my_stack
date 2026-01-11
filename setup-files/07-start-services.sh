@@ -33,6 +33,20 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
+# Validate compose configurations
+echo "Validating Docker Compose configurations..."
+docker compose -f n8n-docker-compose.yaml config --quiet
+if [ $? -ne 0 ]; then
+  echo "ERROR: n8n-docker-compose.yaml configuration is invalid"
+  exit 1
+fi
+
+docker compose -f flowise-docker-compose.yaml config --quiet
+if [ $? -ne 0 ]; then
+  echo "ERROR: flowise-docker-compose.yaml configuration is invalid"
+  exit 1
+fi
+
 # Проверить необходимость запуска PostgreSQL, Redis, Adminer и Qdrant
 INSTALL_POSTGRES=false
 INSTALL_REDIS=false
@@ -65,6 +79,13 @@ fi
 # Start database services if configured
 if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
   if [ -f "/opt/database/docker-compose.yaml" ]; then
+    echo "Validating database compose configuration..."
+    docker compose -f /opt/database/docker-compose.yaml config --quiet
+    if [ $? -ne 0 ]; then
+      echo "ERROR: database/docker-compose.yaml configuration is invalid"
+      exit 1
+    fi
+
     echo "Starting database services..."
     sudo docker compose -f /opt/database/docker-compose.yaml up -d
     if [ $? -ne 0 ]; then
@@ -73,9 +94,40 @@ if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
     fi
     echo "Database services started successfully"
     
-    # Небольшая пауза для инициализации сервисов БД
-    echo "Waiting for database services initialization..."
+    # Wait for database services to be healthy
+    echo "Waiting for database services to be healthy..."
     sleep 10
+    
+    # Additional health checks
+    if [[ "$INSTALL_POSTGRES" == "true" ]]; then
+      echo "Checking PostgreSQL health..."
+      for i in {1..30}; do
+        if sudo docker exec postgres pg_isready -U postgres &>/dev/null; then
+          echo "PostgreSQL is ready"
+          break
+        fi
+        if [ $i -eq 30 ]; then
+          echo "ERROR: PostgreSQL did not become ready within 30 attempts"
+          exit 1
+        fi
+        sleep 2
+      done
+    fi
+    
+    if [[ "$INSTALL_REDIS" == "true" ]]; then
+      echo "Checking Redis health..."
+      for i in {1..15}; do
+        if sudo docker exec redis redis-cli ping &>/dev/null; then
+          echo "Redis is ready"
+          break
+        fi
+        if [ $i -eq 15 ]; then
+          echo "ERROR: Redis did not become ready within 15 attempts"
+          exit 1
+        fi
+        sleep 2
+      done
+    fi
   else
     echo "WARNING: Database services were configured but docker-compose file not found"
   fi
@@ -84,6 +136,13 @@ fi
 # Start Adminer if configured
 if [[ "$INSTALL_ADMINER" == "true" ]]; then
   if [ -f "/opt/adminer/docker-compose.yaml" ]; then
+    echo "Validating Adminer compose configuration..."
+    docker compose -f /opt/adminer/docker-compose.yaml config --quiet
+    if [ $? -ne 0 ]; then
+      echo "ERROR: adminer/docker-compose.yaml configuration is invalid"
+      exit 1
+    fi
+
     echo "Starting Adminer..."
     sudo docker compose -f /opt/adminer/docker-compose.yaml up -d
     if [ $? -ne 0 ]; then
@@ -99,6 +158,13 @@ fi
 # Start Qdrant if configured
 if [[ "$INSTALL_QDRANT" == "true" ]]; then
   if [ -f "/opt/qdrant/docker-compose.yaml" ]; then
+    echo "Validating Qdrant compose configuration..."
+    docker compose -f /opt/qdrant/docker-compose.yaml config --quiet
+    if [ $? -ne 0 ]; then
+      echo "ERROR: qdrant/docker-compose.yaml configuration is invalid"
+      exit 1
+    fi
+
     echo "Starting Qdrant..."
     sudo docker compose -f /opt/qdrant/docker-compose.yaml up -d
     if [ $? -ne 0 ]; then

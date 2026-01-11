@@ -236,6 +236,13 @@ if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
     echo "ERROR: Failed to copy database-docker-compose.yaml.template to working file"
     exit 1
   fi
+
+  # Copy init script for creating multiple databases
+  sudo cp init-multiple-dbs.sh /opt/database/init-multiple-dbs.sh
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to copy init-multiple-dbs.sh to /opt/database/"
+    exit 1
+  fi
   
   # Setup Adminer if enabled
   if [[ "$INSTALL_ADMINER" == "true" ]]; then
@@ -339,7 +346,7 @@ if [[ "$INSTALL_MONITORING" == "true" ]]; then
   echo "Creating monitoring configuration files..."
   
   # Create prometheus-docker-compose.yaml template
-  if [ ! -f "../prometheus-docker-compose.yaml.template" ]; then
+  if [ ! -f "prometheus-docker-compose.yaml.template" ]; then
     echo "Creating template prometheus-docker-compose.yaml.template..."
     cat > prometheus-docker-compose.yaml.template << EOL
 version: '3'
@@ -359,6 +366,33 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     ports:
       - 9090:9090
+    networks:
+      - app-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - app-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
     networks:
       - app-network
 
@@ -414,7 +448,7 @@ EOL
   fi
   
   # Copy prometheus-docker-compose.yaml.template to working file
-  cp prometheus-docker-compose.yaml.template ../prometheus-docker-compose.yaml
+  cp prometheus-docker-compose.yaml.template prometheus-docker-compose.yaml
   if [ $? -ne 0 ]; then
     echo "ERROR: Failed to copy prometheus-docker-compose.yaml.template to working file"
     exit 1
@@ -440,13 +474,13 @@ scrape_configs:
     static_configs:
       - targets: ['n8n:5678']
 
-  - job_name: 'docker'
-    static_configs:
-      - targets: ['172.17.0.1:9323']
-
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
 EOL
   if [ $? -ne 0 ]; then
     echo "ERROR: Failed to create prometheus.yml"
@@ -506,7 +540,7 @@ EOL
     exit 1
   fi
   
-  sudo cp ../prometheus-docker-compose.yaml /opt/monitoring/
+  sudo cp prometheus-docker-compose.yaml /opt/monitoring/docker-compose.yaml
   if [ $? -ne 0 ]; then
     echo "ERROR: Failed to copy prometheus-docker-compose.yaml to /opt/monitoring/"
     exit 1
