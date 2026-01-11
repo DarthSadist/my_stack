@@ -411,6 +411,43 @@ keys *
 - **Backup Strategy**: Include PostgreSQL and Redis in your backup routines
 - **Scaling**: For high-volume workloads, consider increasing resources for database containers
 
+## Pentaract (Telegram-based file cloud storage)
+
+Pentaract is a self-hosted file storage platform that uses the **Telegram API** as the backend for file content. It provides a Google-Drive-like UX (files/folders, download, metadata, deletion) while storing file chunks inside Telegram.
+
+Upstream project:
+
+- https://github.com/Dominux/Pentaract
+
+### How Pentaract works (concepts)
+
+- **Storage**: Pentaract is built around the "storages" concept. Each storage is an isolated filesystem namespace (like separate drives/volumes).
+- **Telegram channel per storage**: each storage uses its own Telegram channel where Pentaract stores file chunks.
+- **Storage workers (bots)**: Telegram bots are used to upload/download chunks. More workers => higher throughput.
+- **Database (PostgreSQL)**: stores metadata (users, storages, file tree, chunk mapping). The actual file content is in Telegram.
+
+### Telegram API limitations (important)
+
+Telegram limitations directly affect your speed and max chunk size:
+
+- **RPM (requests per minute) per bot**: Pentaract can work around this by adding more storage workers (bots). Upstream notes up to **20 bots per user**.
+- **File size**: Telegram API limits file download to **20 MB**. Pentaract splits files into chunks, stores them separately, and reassembles them when downloading.
+
+Practical guidance:
+
+- If you mostly store personal files and don’t need fast transfers, 1 worker is usually fine.
+- If you upload/download large files often, plan to create multiple workers.
+
+### Prerequisites (what you must prepare)
+
+This stack deploys the Pentaract app and PostgreSQL, but you still need Telegram resources:
+
+- A Telegram account
+- One or more Telegram bots created via **@BotFather**
+- A Telegram channel per storage (private is OK)
+
+Pentaract does not automatically create bots/channels.
+
 ## License
 
 This project is distributed under the MIT License.
