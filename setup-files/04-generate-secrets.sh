@@ -9,6 +9,7 @@ INSTALL_POSTGRES=$5
 INSTALL_REDIS=$6
 INSTALL_ADMINER=$7
 INSTALL_QDRANT=$8
+INSTALL_PENTARACT=$9
 
 if [ -z "$USER_EMAIL" ] || [ -z "$DOMAIN_NAME" ]; then
   echo "ERROR: Email or domain name not specified"
@@ -26,6 +27,7 @@ INSTALL_POSTGRES=${INSTALL_POSTGRES:-false}
 INSTALL_REDIS=${INSTALL_REDIS:-false}
 INSTALL_ADMINER=${INSTALL_ADMINER:-false}
 INSTALL_QDRANT=${INSTALL_QDRANT:-false}
+INSTALL_PENTARACT=${INSTALL_PENTARACT:-false}
 
 # Определение пути к файлу с паролями
 PASSWORD_FILE="./setup-files/passwords.txt"
@@ -33,8 +35,10 @@ PASSWORD_FILE="./setup-files/passwords.txt"
 # Проверка существования директории для файла с паролями
 mkdir -p "$(dirname "$PASSWORD_FILE")"
 
-# Создание или очистка файла с паролями
-echo "# Сгенерированные пароли и ключи доступа" > "$PASSWORD_FILE"
+# Создание файла с паролями, если он не существует
+if [ ! -f "$PASSWORD_FILE" ]; then
+  echo "# Сгенерированные пароли и ключи доступа" > "$PASSWORD_FILE"
+fi
 
 echo "Generating secret keys and passwords..."
 
@@ -86,9 +90,15 @@ PROMETHEUS_HASHED_PASSWORD=""
 POSTGRES_PASSWORD=""
 POSTGRES_N8N_PASSWORD=""
 POSTGRES_FLOWISE_PASSWORD=""
+POSTGRES_PENTARACT_PASSWORD=""
 
 # Generate Redis password if Redis is enabled
 REDIS_PASSWORD=""
+
+# Pentaract settings
+PENTARACT_SUPERUSER_EMAIL=""
+PENTARACT_SUPERUSER_PASS=""
+PENTARACT_SECRET_KEY=""
 
 # Generate PostgreSQL passwords if enabled
 if [[ "$INSTALL_POSTGRES" == "true" ]]; then
@@ -168,16 +178,43 @@ EOL
   echo "Password for Redis: $REDIS_PASSWORD"
 fi
 
+# Generate Pentaract credentials if enabled
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  PENTARACT_SUPERUSER_EMAIL=$USER_EMAIL
+  PENTARACT_SUPERUSER_PASS=$(generate_safe_password 24)
+  if [ -z "$PENTARACT_SUPERUSER_PASS" ]; then
+    echo "ERROR: Failed to generate password for Pentaract superuser"
+    exit 1
+  fi
+
+  PENTARACT_SECRET_KEY=$(generate_safe_password 64)
+  if [ -z "$PENTARACT_SECRET_KEY" ]; then
+    echo "ERROR: Failed to generate secret key for Pentaract"
+    exit 1
+  fi
+
+  POSTGRES_PENTARACT_PASSWORD=$(generate_safe_password 24)
+  if [ -z "$POSTGRES_PENTARACT_PASSWORD" ]; then
+    echo "ERROR: Failed to generate password for Pentaract database user"
+    exit 1
+  fi
+fi
+
 # Create combined database .env for docker-compose (PostgreSQL/Redis)
 if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
   sudo mkdir -p /opt/database
+  POSTGRES_MULTIPLE_DATABASES_VALUE="n8n,flowise"
+  if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+    POSTGRES_MULTIPLE_DATABASES_VALUE="${POSTGRES_MULTIPLE_DATABASES_VALUE},pentaract"
+  fi
   cat > database.env << EOL
 # Combined settings for database stack (PostgreSQL/Redis)
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_USER=postgres
-POSTGRES_MULTIPLE_DATABASES=n8n,flowise
+POSTGRES_MULTIPLE_DATABASES=${POSTGRES_MULTIPLE_DATABASES_VALUE}
 POSTGRES_N8N_PASSWORD=$POSTGRES_N8N_PASSWORD
 POSTGRES_FLOWISE_PASSWORD=$POSTGRES_FLOWISE_PASSWORD
+POSTGRES_PENTARACT_PASSWORD=$POSTGRES_PENTARACT_PASSWORD
 
 REDIS_PASSWORD=$REDIS_PASSWORD
 EOL
@@ -276,6 +313,59 @@ FLOWISE_PASSWORD=$FLOWISE_PASSWORD
 # Domain settings
 DOMAIN_NAME=$DOMAIN_NAME
 EOL
+
+# Pentaract settings (if enabled)
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  cat >> .env << PENTARACT_EOF
+
+# Pentaract settings
+PENTARACT_SUPERUSER_EMAIL=$PENTARACT_SUPERUSER_EMAIL
+PENTARACT_SUPERUSER_PASS=$PENTARACT_SUPERUSER_PASS
+PENTARACT_SECRET_KEY=$PENTARACT_SECRET_KEY
+PENTARACT_DATABASE_USER=pentaract
+PENTARACT_DATABASE_PASSWORD=$POSTGRES_PENTARACT_PASSWORD
+PENTARACT_DATABASE_NAME=pentaract
+PENTARACT_DATABASE_HOST=postgres
+PENTARACT_DATABASE_PORT=5432
+PENTARACT_PORT=8000
+PENTARACT_TELEGRAM_API_BASE_URL=https://api.telegram.org
+PENTARACT_WORKERS=4
+PENTARACT_CHANNEL_CAPACITY=32
+PENTARACT_ACCESS_TOKEN_EXPIRE_IN_SECS=1800
+PENTARACT_REFRESH_TOKEN_EXPIRE_IN_DAYS=14
+PENTARACT_EOF
+
+  cat >> "$PASSWORD_FILE" << PENTARACT_INFO_EOF
+
+# Pentaract Settings
+Pentaract URL: https://pentaract.${DOMAIN_NAME}
+Pentaract Admin Email: ${PENTARACT_SUPERUSER_EMAIL}
+Pentaract Admin Password: ${PENTARACT_SUPERUSER_PASS}
+PENTARACT_INFO_EOF
+
+  mkdir -p /opt/pentaract
+  cat > /opt/pentaract/.env << PENTARACT_ENV_EOF
+# Pentaract settings
+PORT=8000
+WORKERS=4
+CHANNEL_CAPACITY=32
+
+SUPERUSER_EMAIL=${PENTARACT_SUPERUSER_EMAIL}
+SUPERUSER_PASS=${PENTARACT_SUPERUSER_PASS}
+
+ACCESS_TOKEN_EXPIRE_IN_SECS=1800
+REFRESH_TOKEN_EXPIRE_IN_DAYS=14
+SECRET_KEY=${PENTARACT_SECRET_KEY}
+
+TELEGRAM_API_BASE_URL=https://api.telegram.org
+
+DATABASE_USER=pentaract
+DATABASE_PASSWORD=${POSTGRES_PENTARACT_PASSWORD}
+DATABASE_NAME=pentaract
+DATABASE_HOST=postgres
+DATABASE_PORT=5432
+PENTARACT_ENV_EOF
+fi
 
 # Adminer settings (if enabled)
 if [[ "$INSTALL_ADMINER" == "true" ]]; then
@@ -414,6 +504,13 @@ fi
 # Add Redis password if Redis is enabled
 if [[ "$INSTALL_REDIS" == "true" ]]; then
   echo "REDIS_PASSWORD=\"$REDIS_PASSWORD\"" >> ./setup-files/passwords.txt
+fi
+
+# Add Pentaract passwords if enabled
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  echo "PENTARACT_SUPERUSER_PASS=\"$PENTARACT_SUPERUSER_PASS\"" >> ./setup-files/passwords.txt
+  echo "PENTARACT_SECRET_KEY=\"$PENTARACT_SECRET_KEY\"" >> ./setup-files/passwords.txt
+  echo "POSTGRES_PENTARACT_PASSWORD=\"$POSTGRES_PENTARACT_PASSWORD\"" >> ./setup-files/passwords.txt
 fi
 
 echo "✅ Secret keys and passwords successfully generated"

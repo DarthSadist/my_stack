@@ -7,10 +7,11 @@ INSTALL_POSTGRES=$3
 INSTALL_REDIS=$4
 INSTALL_ADMINER=$5
 INSTALL_QDRANT=$6
+INSTALL_PENTARACT=$7
 
 if [ -z "$DOMAIN_NAME" ]; then
   echo "ERROR: Domain name not specified"
-  echo "Usage: $0 example.com [install_monitoring] [install_postgres] [install_redis] [install_adminer] [install_qdrant]"
+  echo "Usage: $0 example.com [install_monitoring] [install_postgres] [install_redis] [install_adminer] [install_qdrant] [install_pentaract]"
   exit 1
 fi
 
@@ -20,6 +21,7 @@ INSTALL_POSTGRES=${INSTALL_POSTGRES:-false}
 INSTALL_REDIS=${INSTALL_REDIS:-false}
 INSTALL_ADMINER=${INSTALL_ADMINER:-false}
 INSTALL_QDRANT=${INSTALL_QDRANT:-false}
+INSTALL_PENTARACT=${INSTALL_PENTARACT:-false}
 
 echo "Creating templates and configuration files..."
 
@@ -206,6 +208,48 @@ else
   echo "Template adminer-Caddyfile.template already exists"
 fi
 
+if [ ! -f "pentaract-docker-compose.yaml.template" ]; then
+  echo "Creating template pentaract-docker-compose.yaml.template..."
+  cat > pentaract-docker-compose.yaml.template << EOL
+version: '3'
+
+services:
+  pentaract:
+    image: thedominux/pentaract:latest
+    container_name: pentaract
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
+EOL
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to create file pentaract-docker-compose.yaml.template"
+    exit 1
+  fi
+else
+  echo "Template pentaract-docker-compose.yaml.template already exists"
+fi
+
+if [ ! -f "pentaract-Caddyfile.template" ]; then
+  echo "Creating template pentaract-Caddyfile.template..."
+  cat > pentaract-Caddyfile.template << EOL
+pentaract.${DOMAIN_NAME} {
+  reverse_proxy pentaract:8000
+}
+EOL
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to create file pentaract-Caddyfile.template"
+    exit 1
+  fi
+else
+  echo "Template pentaract-Caddyfile.template already exists"
+fi
+
 # Copy templates to working files
 cp n8n-docker-compose.yaml.template n8n-docker-compose.yaml
 if [ $? -ne 0 ]; then
@@ -308,6 +352,31 @@ if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
   fi
 fi
 
+# Setup Pentaract if enabled
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  echo "Setting up Pentaract..."
+
+  sudo mkdir -p /opt/pentaract
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to create /opt/pentaract directory"
+    exit 1
+  fi
+
+  sudo cp pentaract-docker-compose.yaml.template /opt/pentaract/docker-compose.yaml
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to copy pentaract-docker-compose.yaml.template to /opt/pentaract/docker-compose.yaml"
+    exit 1
+  fi
+
+  sudo cp pentaract-Caddyfile.template /opt/pentaract/Caddyfile
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to copy pentaract-Caddyfile.template to /opt/pentaract/Caddyfile"
+    exit 1
+  fi
+
+  echo "✅ Pentaract setup completed"
+fi
+
 # Create Caddyfile
 echo "Creating Caddyfile..."
 cat > Caddyfile << EOL
@@ -328,6 +397,16 @@ adminer.${DOMAIN_NAME} {
     reverse_proxy adminer:8080
 }
 ADMINER_EOL
+fi
+
+# Add Pentaract to Caddyfile if enabled
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+cat >> Caddyfile << PENTARACT_EOL
+
+pentaract.${DOMAIN_NAME} {
+    reverse_proxy pentaract:8000
+}
+PENTARACT_EOL
 fi
 if [ $? -ne 0 ]; then
   echo "ERROR: Failed to create Caddyfile"

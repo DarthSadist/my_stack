@@ -52,6 +52,7 @@ INSTALL_POSTGRES=false
 INSTALL_REDIS=false
 INSTALL_ADMINER=false
 INSTALL_QDRANT=false
+INSTALL_PENTARACT=false
 
 # Проверяем в .env наличие переменных, говорящих об использовании PostgreSQL и Redis
 if grep -q "DB_TYPE=postgresdb" .env; then
@@ -64,6 +65,11 @@ if grep -q "EXECUTIONS_MODE=queue" .env; then
   echo "Redis configuration detected"
 fi
 
+# If Pentaract is enabled it requires PostgreSQL
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  INSTALL_POSTGRES=true
+fi
+
 # Проверяем наличие директории Adminer
 if [ -d "/opt/adminer" ]; then
   INSTALL_ADMINER=true
@@ -74,6 +80,12 @@ fi
 if [ -d "/opt/qdrant" ]; then
   INSTALL_QDRANT=true
   echo "Qdrant configuration detected"
+fi
+
+# Проверяем наличие директории Pentaract
+if [ -d "/opt/pentaract" ]; then
+  INSTALL_PENTARACT=true
+  echo "Pentaract configuration detected"
 fi
 
 # Start database services if configured
@@ -130,6 +142,28 @@ if [[ "$INSTALL_POSTGRES" == "true" ]] || [[ "$INSTALL_REDIS" == "true" ]]; then
     fi
   else
     echo "WARNING: Database services were configured but docker-compose file not found"
+  fi
+fi
+
+# Start Pentaract if configured
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  if [ -f "/opt/pentaract/docker-compose.yaml" ]; then
+    echo "Validating Pentaract compose configuration..."
+    docker compose -f /opt/pentaract/docker-compose.yaml config --quiet
+    if [ $? -ne 0 ]; then
+      echo "ERROR: pentaract/docker-compose.yaml configuration is invalid"
+      exit 1
+    fi
+
+    echo "Starting Pentaract..."
+    sudo docker compose -f /opt/pentaract/docker-compose.yaml up -d
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Failed to start Pentaract"
+      exit 1
+    fi
+    echo "Pentaract started successfully"
+  else
+    echo "WARNING: Pentaract was configured but docker-compose file not found"
   fi
 fi
 
@@ -214,6 +248,7 @@ POSTGRES_RUNNING=0
 REDIS_RUNNING=0
 ADMINER_RUNNING=0
 QDRANT_RUNNING=0
+PENTARACT_RUNNING=0
 
 # Проверка запущенных контейнеров БД если они настроены
 if [[ "$INSTALL_POSTGRES" == "true" ]]; then
@@ -230,6 +265,10 @@ fi
 
 if [[ "$INSTALL_QDRANT" == "true" ]]; then
   QDRANT_RUNNING=$(sudo docker ps | grep -c "qdrant")
+fi
+
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  PENTARACT_RUNNING=$(sudo docker ps | grep -c "pentaract")
 fi
 
 # Формирование статуса запущенных контейнеров
@@ -254,6 +293,10 @@ fi
 
 if [[ "$INSTALL_QDRANT" == "true" ]]; then
   STATUS_MESSAGE+="  Qdrant: $([ $QDRANT_RUNNING -eq 1 ] && echo "✓" || { ALL_RUNNING=false; echo "✗"; })\n"
+fi
+
+if [[ "$INSTALL_PENTARACT" == "true" ]]; then
+  STATUS_MESSAGE+="  Pentaract: $([ $PENTARACT_RUNNING -eq 1 ] && echo "✓" || { ALL_RUNNING=false; echo "✗"; })\n"
 fi
 
 # Вывод итогового статуса
