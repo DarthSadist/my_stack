@@ -36,6 +36,13 @@ if [ -z "${POSTGRES_N8N_PASSWORD:-}" ] || [ -z "${POSTGRES_FLOWISE_PASSWORD:-}" 
     exit 1
 fi
 
+if echo "$POSTGRES_MULTIPLE_DATABASES" | tr ',' ' ' | grep -qx "pentaract"; then
+    if [ -z "${POSTGRES_PENTARACT_PASSWORD:-}" ]; then
+        echo "POSTGRES_PENTARACT_PASSWORD is required when pentaract database is enabled"
+        exit 1
+    fi
+fi
+
 # Create each database
 for db in $(echo "$POSTGRES_MULTIPLE_DATABASES" | tr ',' ' '); do
     case "$db" in
@@ -44,6 +51,9 @@ for db in $(echo "$POSTGRES_MULTIPLE_DATABASES" | tr ',' ' '); do
             ;;
         "flowise")
             create_user_and_db "$db" "$POSTGRES_FLOWISE_PASSWORD"
+            ;;
+        "pentaract")
+            create_user_and_db "$db" "$POSTGRES_PENTARACT_PASSWORD"
             ;;
         *)
             echo "Unknown database: $db"

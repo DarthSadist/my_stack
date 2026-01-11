@@ -181,6 +181,27 @@ main() {
     INSTALL_QDRANT=false
     echo "⏩ Qdrant will not be installed"
   fi
+
+  echo ""
+  echo "Do you want to install Pentaract (Telegram-based file cloud storage)?"
+  echo "This will deploy Pentaract web app and use PostgreSQL for metadata."
+  if [ -z "${INSTALL_PENTARACT:-}" ]; then
+    read -p "Install Pentaract? (y/n, default: n): " INSTALL_PENTARACT
+    INSTALL_PENTARACT=${INSTALL_PENTARACT:-n}
+  else
+    echo "Using Pentaract flag from environment: $INSTALL_PENTARACT"
+  fi
+  if [[ "$INSTALL_PENTARACT" =~ ^[Yy]$ ]]; then
+    INSTALL_PENTARACT=true
+    if [[ "$INSTALL_POSTGRES" != "true" ]]; then
+      echo "⚠️ Warning: Pentaract requires PostgreSQL. PostgreSQL will be installed as well."
+      INSTALL_POSTGRES=true
+    fi
+    echo "✅ Pentaract will be installed"
+  else
+    INSTALL_PENTARACT=false
+    echo "⏩ Pentaract will not be installed"
+  fi
   
   # Create setup-files directory if it doesn't exist
   if [ ! -d "setup-files" ]; then
@@ -208,12 +229,12 @@ main() {
   
   # Step 4: Secret key generation
   show_progress "Step 4/7: Secret key generation"
-  ./setup-files/04-generate-secrets.sh "$USER_EMAIL" "$DOMAIN_NAME" "$GENERIC_TIMEZONE" "$INSTALL_MONITORING" "$INSTALL_POSTGRES" "$INSTALL_REDIS" "$INSTALL_ADMINER" "$INSTALL_QDRANT"
+  ./setup-files/04-generate-secrets.sh "$USER_EMAIL" "$DOMAIN_NAME" "$GENERIC_TIMEZONE" "$INSTALL_MONITORING" "$INSTALL_POSTGRES" "$INSTALL_REDIS" "$INSTALL_ADMINER" "$INSTALL_QDRANT" "$INSTALL_PENTARACT"
   check_success "secret key generation"
   
   # Step 5: Template creation
   show_progress "Step 5/7: Configuration file creation"
-  ./setup-files/05-create-templates.sh "$DOMAIN_NAME" "$INSTALL_MONITORING" "$INSTALL_POSTGRES" "$INSTALL_REDIS" "$INSTALL_ADMINER" "$INSTALL_QDRANT"
+  ./setup-files/05-create-templates.sh "$DOMAIN_NAME" "$INSTALL_MONITORING" "$INSTALL_POSTGRES" "$INSTALL_REDIS" "$INSTALL_ADMINER" "$INSTALL_QDRANT" "$INSTALL_PENTARACT"
   check_success "configuration file creation"
   
   # Step 6: Firewall setup
