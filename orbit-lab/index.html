@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Орбитальная лаборатория</title>
+  <style>
+    :root { color-scheme: dark; --ink:#eef2ff; --muted:#96a4c4; --line:rgba(172,191,239,.15); --panel:rgba(13,22,49,.84); --accent:#a9c7ff; }
+    * { box-sizing:border-box; } body { margin:0; min-width:320px; background:#060a18; color:var(--ink); font-family:Inter, ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .app { min-height:100vh; display:grid; grid-template-columns:280px minmax(0,1fr); background:radial-gradient(circle at 70% 18%,#182958 0,transparent 31%),#060a18; }
+    aside { position:relative; z-index:2; padding:30px 22px; background:linear-gradient(180deg,rgba(18,30,65,.94),rgba(8,14,34,.93)); border-right:1px solid var(--line); display:flex; flex-direction:column; gap:27px; }
+    .brand { display:flex; align-items:center; gap:11px; letter-spacing:.12em; font-size:11px; font-weight:800; text-transform:uppercase; color:#c8d9ff; }
+    .brand b { width:26px; height:26px; border:1px solid #92b8ff; border-radius:50%; position:relative; display:block; } .brand b:after { content:""; position:absolute; width:32px; height:10px; border:1px solid #92b8ff; border-radius:50%; left:-4px; top:6px; transform:rotate(-24deg); }
+    h1 { margin:0; font-size:26px; line-height:1.05; letter-spacing:-.06em; } .intro { margin:10px 0 0; color:var(--muted); font-size:13px; line-height:1.55; }
+    .label { margin:0 0 10px; color:#91a3cf; letter-spacing:.12em; font-size:10px; font-weight:800; text-transform:uppercase; }
+    .presets { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; } button { font:inherit; cursor:pointer; color:inherit; } .preset, .control, .clear { border:1px solid var(--line); background:rgba(144,168,225,.07); border-radius:9px; transition:.18s ease; }
+    .preset { padding:10px 4px; display:grid; justify-items:center; gap:5px; color:var(--muted); font-size:10px; } .preset:hover,.preset.active { border-color:#8cb5ff; background:rgba(115,157,255,.16); color:#eaf1ff; } .orb { display:block; border-radius:50%; background:var(--c); box-shadow:0 0 14px var(--c); }
+    .control-wrap { display:grid; gap:12px; }.range-row { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; }.range-row output { color:#eaf1ff; font-variant-numeric:tabular-nums; } input[type=range] { width:100%; accent-color:#9fc0ff; } .toggle { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:12px; } .toggle input { accent-color:#9fc0ff; width:16px; height:16px; }
+    .clear { width:100%; padding:11px; color:#dbe7ff; font-size:12px; font-weight:700; }.clear:hover { background:rgba(255,130,142,.13); border-color:#e88998; }
+    .hint { margin-top:auto; padding-top:18px; border-top:1px solid var(--line); color:#7786a9; font-size:11px; line-height:1.55; }.hint strong { color:#bdcff6; }
+    main { position:relative; overflow:hidden; min-height:640px; } canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; } .hud { position:absolute; top:26px; left:30px; pointer-events:none; }.hud .eyebrow { color:#a9bde9; font-size:10px; letter-spacing:.14em; font-weight:800; text-transform:uppercase; }.hud .metric { margin-top:5px; font-size:25px; font-weight:650; letter-spacing:-.06em; }.hud .metric span { font-size:12px; color:#8e9cc0; letter-spacing:0; font-weight:500; margin-left:5px; }
+    .legend { position:absolute; right:27px; bottom:22px; display:flex; gap:14px; color:#91a2c8; font-size:10px; letter-spacing:.06em; text-transform:uppercase; }.legend i { display:inline-block; width:7px; height:7px; margin-right:5px; border-radius:50%; background:#fdcf71; }.legend i.trail { background:#9abaff; }
+    @media (max-width:720px) { .app { grid-template-columns:1fr; grid-template-rows:auto minmax(510px,1fr); } aside { padding:19px; display:grid; grid-template-columns:1fr 1fr; gap:18px; border-right:0; border-bottom:1px solid var(--line); }.brand,.hint { display:none; } .intro { font-size:11px; }.controls { grid-column:2; grid-row:1 / span 2; }.clear { align-self:end; }.hud { top:18px; left:18px; }.legend { right:16px; bottom:14px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand"><b></b> Celestial dynamics</div>
+      <section><h1>Орбитальная<br>лаборатория</h1><p class="intro">Запускайте миры, наблюдайте за их танцем и меняйте ход гравитации.</p></section>
+      <section><p class="label">Масса запуска</p><div class="presets">
+        <button class="preset" data-mass="8" style="--c:#9fd7ff"><i class="orb" style="--c:#9fd7ff;width:9px;height:9px"></i>Луна</button>
+        <button class="preset active" data-mass="24" style="--c:#aee8be"><i class="orb" style="--c:#aee8be;width:14px;height:14px"></i>Земля</button>
+        <button class="preset" data-mass="70" style="--c:#f1b46e"><i class="orb" style="--c:#f1b46e;width:20px;height:20px"></i>Гигант</button>
+      </div></section>
+      <section class="controls"><p class="label">Симуляция</p><div class="control-wrap"><div class="range-row"><span>Шкала времени</span><output id="speedOut">1.0×</output></div><input id="speed" type="range" min="0" max="2" step="0.05" value="1"><label class="toggle">Траектории <input id="trails" type="checkbox" checked></label><label class="toggle">Вектор запуска <input id="vectors" type="checkbox" checked></label></div></section>
+      <button class="clear" id="clear">Очистить пространство</button>
+      <p class="hint"><strong>Как запустить</strong><br>Потяните от свободной точки. Длина стрелки определяет скорость планеты.</p>
+    </aside>
+    <main><canvas id="space"></canvas><div class="hud"><div class="eyebrow">Система · активна</div><div class="metric" id="bodyCount">01 <span>небесное тело</span></div></div><div class="legend"><span><i></i>звезда</span><span><i class="trail"></i>орбита</span></div></main>
+  </div>
+<script>
+(() => {
+  const canvas = document.querySelector('#space'), ctx = canvas.getContext('2d');
+  const main = canvas.parentElement, speed = document.querySelector('#speed'), speedOut = document.querySelector('#speedOut');
+  const trailsBox = document.querySelector('#trails'), vectorBox = document.querySelector('#vectors'), count = document.querySelector('#bodyCount');
+  let W=0,H=0,dpr=1,last=0, selectedMass=24, drag=null, bodies=[];
+  const star={x:0,y:0,mass:1800,r:22,color:'#ffd46b'}, G=0.18, softening=20, step=1/120;
+  const palette=['#aee8be','#9fd7ff','#f1b46e','#d5b4ff','#ff9ca9'];
+  function resize(){ const r=main.getBoundingClientRect(); dpr=devicePixelRatio||1; W=r.width;H=r.height;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);star.x=W*.57;star.y=H*.51; }
+  addEventListener('resize',resize); resize();
+  function addBody(x,y,vx,vy,mass=selectedMass){ bodies.push({x,y,vx,vy,mass,r:Math.max(4,Math.sqrt(mass)*1.12),color:palette[bodies.length%palette.length],trail:[]}); updateCount(); }
+  function updateCount(){ count.innerHTML=String(bodies.length+1).padStart(2,'0')+' <span>'+((bodies.length+1)===1?'небесное тело':'небесных тел')+'</span>'; }
+  function setup(){ bodies=[]; addBody(star.x+166,star.y,0,-1.38,24); addBody(star.x-270,star.y+46,.2,1.06,9); updateCount(); }
+  function acceleration(b, others){ let ax=0,ay=0; for(const o of others){ if(o===b)continue; const dx=o.x-b.x,dy=o.y-b.y; const d2=dx*dx+dy*dy+softening; const f=G*o.mass/(d2*Math.sqrt(d2)); ax+=dx*f;ay+=dy*f; } return {ax,ay}; }
+  function physics(dt){ const all=[star,...bodies]; for(const b of bodies){ const a=acceleration(b,all); b.vx+=a.ax*dt;b.vy+=a.ay*dt; } for(const b of bodies){ b.x+=b.vx*dt;b.y+=b.vy*dt; if(trailsBox.checked){ b.trail.push([b.x,b.y]);if(b.trail.length>260)b.trail.shift(); } }
+    for(let i=bodies.length-1;i>=0;i--) for(let j=i-1;j>=0;j--){ let a=bodies[i],b=bodies[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy); if(d<a.r+b.r){ const m=a.mass+b.mass; a.vx=(a.vx*a.mass+b.vx*b.mass)/m;a.vy=(a.vy*a.mass+b.vy*b.mass)/m;a.x=(a.x*a.mass+b.x*b.mass)/m;a.y=(a.y*a.mass+b.y*b.mass)/m;a.mass=m;a.r=Math.sqrt(a.r*a.r+b.r*b.r);a.trail=a.trail.concat(b.trail).slice(-260);bodies.splice(j,1);updateCount();break; } }
+  }
+  function line(x1,y1,x2,y2,color,w=1){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=w;ctx.stroke();}
+  function render(){ ctx.clearRect(0,0,W,H); const g=ctx.createRadialGradient(star.x,star.y,0,star.x,star.y,Math.max(W,H)*.68);g.addColorStop(0,'rgba(76,108,190,.12)');g.addColorStop(1,'rgba(2,5,14,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(209,224,255,.25)'; for(let i=0;i<100;i++){const x=(i*173)%W,y=(i*i*31)%H;ctx.fillRect(x,y,1,1)}
+    for(const b of bodies){ if(trailsBox.checked&&b.trail.length>1){ctx.beginPath();b.trail.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.strokeStyle=b.color+'88';ctx.lineWidth=1;ctx.stroke();} const glow=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r*3);glow.addColorStop(0,b.color+'aa');glow.addColorStop(1,b.color+'00');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(b.x,b.y,b.r*3,0,7);ctx.fill();ctx.fillStyle=b.color;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill(); }
+    const glow=ctx.createRadialGradient(star.x,star.y,0,star.x,star.y,75);glow.addColorStop(0,'#fff6ba');glow.addColorStop(.18,'#ffd46b');glow.addColorStop(1,'rgba(255,183,77,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(star.x,star.y,75,0,7);ctx.fill();ctx.fillStyle='#ffe58a';ctx.beginPath();ctx.arc(star.x,star.y,star.r,0,7);ctx.fill();
+    if(drag&&vectorBox.checked){line(drag.x,drag.y,drag.cx,drag.cy,'#cae0ff',1.5); const a=Math.atan2(drag.cy-drag.y,drag.cx-drag.x);line(drag.cx,drag.cy,drag.cx-9*Math.cos(a-.45),drag.cy-9*Math.sin(a-.45),'#cae0ff',1.5);line(drag.cx,drag.cy,drag.cx-9*Math.cos(a+.45),drag.cy-9*Math.sin(a+.45),'#cae0ff',1.5);}
+  }
+  function frame(t){ const factor=+speed.value; const elapsed=Math.min(.04,(t-last||0)/1000);last=t; for(let passed=0;passed<elapsed*factor;passed+=step)physics(step);render();requestAnimationFrame(frame); } requestAnimationFrame(frame);
+  function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};} canvas.addEventListener('pointerdown',e=>{const p=point(e);drag={x:p.x,y:p.y,cx:p.x,cy:p.y};canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(drag){const p=point(e);drag.cx=p.x;drag.cy=p.y}});canvas.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;const dx=d.cx-d.x,dy=d.cy-d.y;if(Math.hypot(dx,dy)>7)addBody(d.x,d.y,dx*.012,dy*.012);drag=null});
+  document.querySelectorAll('.preset').forEach(b=>b.onclick=()=>{document.querySelector('.preset.active').classList.remove('active');b.classList.add('active');selectedMass=+b.dataset.mass});speed.oninput=()=>speedOut.value=(+speed.value).toFixed(2)+'×';document.querySelector('#clear').onclick=()=>{bodies=[];updateCount()}; setup();
+})();
+</script></body></html>

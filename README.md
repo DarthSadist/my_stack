@@ -18,6 +18,10 @@ This repository contains scripts for automatic configuration of:
 
 The system is configured to work with your domain name and automatically obtains Let's Encrypt SSL certificates.
 
+## Orbital gravity simulator
+
+The standalone interactive experiment is available in [`orbit-lab/index.html`](orbit-lab/index.html). Open it directly in a modern browser, or serve the repository with a static HTTP server. Drag from any point in space to launch a planet: drag distance and direction set its initial velocity. The panel provides mass presets, a time-scale control, trajectory and launch-vector toggles, and a clear-space action. The simulation uses softened pairwise gravity and inelastic mergers to keep multi-body encounters stable and readable.
+
 ## Requirements
 
 - Ubuntu 22.04 
